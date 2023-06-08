@@ -1,11 +1,13 @@
 import logging
 import os
+import sys
 from logging import config as logging_config
 
 from pydantic import BaseSettings, PostgresDsn
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+sys.path.append('src')
 
 class AppSettings(BaseSettings):
     LOG_LEVEL = 'INFO'
@@ -13,12 +15,6 @@ class AppSettings(BaseSettings):
     APP_TITLE: str
     PROJECT_HOST: str
     PROJECT_PORT: int
-
-    DB_NAME: str
-    DB_USER: str
-    DB_PASSWORD: str
-    DB_HOST: str
-    DB_PORT: int
 
     DATABASE_URL: PostgresDsn
 
