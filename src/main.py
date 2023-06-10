@@ -14,6 +14,16 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.APP_TITLE,
+    openapi_tags=[
+        {
+            "name": "v1",
+            "description": "API v1",
+        },
+        {
+            "name": "auth",
+            "description": "Authentication",
+        },
+    ],
 )
 
 app.include_router(router, prefix='/v1', tags=['v1'],)

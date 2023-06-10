@@ -1,4 +1,6 @@
 import datetime
+from typing import Any
+
 from pydantic import BaseModel
 from pydantic.types import UUID
 
@@ -12,7 +14,7 @@ class FileBase(BaseModel):
 
 
 class FileCreate(FileBase):
-    created_by: UUID
+    user_id: UUID
 
 
 class FileUpdate(FileBase):
@@ -21,9 +23,22 @@ class FileUpdate(FileBase):
 
 class FileInDBBase(FileBase):
     created_at: datetime.datetime | None
-    created_by: UUID
-    updated_at: datetime.datetime | None
-    updated_by: UUID | None
 
     class Config:
         orm_mode = True
+
+
+class Ping(BaseModel):
+    api: str
+    python: list
+    db: datetime.timedelta
+
+
+class Files(BaseModel):
+    account_id: str
+    files: list[FileInDBBase]
+
+
+class MemoryUsage(BaseModel):
+    files: int
+    used: int

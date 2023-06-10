@@ -16,9 +16,12 @@ class AppSettings(BaseSettings):
     PROJECT_HOST: str
     PROJECT_PORT: int
 
-    DATABASE_URL: PostgresDsn
+    MAX_FILE_SIZE: int = 1024 * 1024 * 10
+    SECRET: str
+    TOKEN_EXPIRE: int = 60 * 60
 
-    TEST_DB_NAME = 'aps5_test_db'
+    DATABASE_URL: PostgresDsn
+    TEST_DATABASE_URL: PostgresDsn
 
     FILE_FOLDER: str = 'files/'
 

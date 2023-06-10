@@ -1,8 +1,8 @@
 import datetime
 import logging
+import os
 import sys
 import uuid
-from shutil import copyfileobj
 
 import aiofiles
 import asyncpg
@@ -15,7 +15,7 @@ from starlette.responses import FileResponse
 from core.config import settings
 from db.db import get_session
 from models.models import User
-from schemas.files import FileCreate
+from schemas.files import FileCreate, Ping, Files, MemoryUsage
 from services.files import file_crud
 from services.users import current_active_user
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get('/ping', description='Check services status', summary='Check services status')
+@router.get('/ping', description='Check services status', summary='Check services status', response_model=Ping)
 async def ping(db: AsyncSession = Depends(get_session)):
     logger.info('Test ping.')
     db_response_time = await ping_db(db)
@@ -47,9 +47,9 @@ async def ping_db(db):
         return err.message
 
 
-@router.post('/files/', description='Files list', summary='Files list')
+@router.post('/files/', description='Files list', summary='Files list', response_model=Files)
 async def files_list_handler(user: User = Depends(current_active_user), db: AsyncSession = Depends(get_session)):
-    query = await file_crud.get_multi(db=db, created_by=str(user.id))
+    query = await file_crud.get_multi(db=db, user_id=str(user.id))
     return {"account_id": str(user.id), "files": query}
 
 
@@ -63,13 +63,16 @@ async def upload_file_handler(
     logger.info('Save file.')
     id_ = uuid.uuid4()
     filename = file.filename
-    out_file_path = rf'{settings.FILE_FOLDER}{id_}.' + filename.split('.')[-1]
+    out_file_path = os.path.join(settings.FILE_FOLDER, f'{id_}.{filename.split(".")[-1]}')
     file_path = rf'{path}/{filename}'
     size = 0
 
     async with aiofiles.open(out_file_path, 'wb') as out_file:
         while content := await file.read(2 ** 16):
             size += len(content)  # async read chunk
+            if size > settings.MAX_FILE_SIZE:
+                logger.error(f'File {id_} is too large.')
+                return status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
             await out_file.write(content)  # async write chunk
 
     obj_in = FileCreate(
@@ -77,7 +80,7 @@ async def upload_file_handler(
         path=file_path,
         name=file.filename,
         size=size,
-        created_by=user.id,
+        user_id=user.id,
         is_downloadable=True
     )
     db_obj = await file_crud.create(db=db, obj_in=obj_in)
@@ -92,6 +95,9 @@ async def download_file_handler(
 ):
     logger.info(f'Download file {id_}.')
     query = await file_crud.get_multi(db=db, id=id_, is_downloadable=True)
+    if not query:
+        logger.error(f'File {id_} not found.')
+        return status.HTTP_404_NOT_FOUND
     file_model = query[0]
 
     return FileResponse(
@@ -101,13 +107,13 @@ async def download_file_handler(
     )
 
 
-@router.get('/user/status', status_code=status.HTTP_200_OK)
+@router.get('/user/status', status_code=status.HTTP_200_OK, response_model=MemoryUsage)
 async def usage_memory(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
     logger.info('Get usage memory.')
-    query = await file_crud.get_multi(db=db, created_by=str(user.id))
+    query = await file_crud.get_multi(db=db, user_id=str(user.id))
 
     return {
         "files": len(query),

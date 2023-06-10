@@ -16,6 +16,7 @@ fastapi-users-db-sqlalchemy==5.0.0
 aiofiles==23.1.0
 
 pytest==7.3.1
+pytest-env==0.8.1
 pytest-asyncio==0.21.0
 pytest-factoryboy==2.5.1
 pytest-mock==3.10.0

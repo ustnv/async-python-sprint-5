@@ -4,10 +4,10 @@ from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport, JWTStrategy
 
-from core.config import logger
+from core.config import logger, settings
 from models.models import User, get_user_db
 
-SECRET = "SECRET"
+SECRET = settings.SECRET
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -36,7 +36,7 @@ bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
 
 
 def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+    return JWTStrategy(secret=SECRET, lifetime_seconds=settings.TOKEN_EXPIRE)
 
 
 auth_backend = AuthenticationBackend(
