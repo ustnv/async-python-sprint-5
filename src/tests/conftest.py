@@ -6,19 +6,10 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.orm import sessionmaker
 
-from main import app
 from core.config import settings
+from db.db import get_session
+from main import app
 from models.models import Base
-
-
-@pytest_asyncio.fixture(scope='session')
-async def client() -> AsyncGenerator:
-    async with AsyncClient(
-        app=app,
-        follow_redirects=False,
-        base_url='http://testserver',
-    ) as client:
-        yield client
 
 
 @pytest_asyncio.fixture(scope='session')
@@ -30,12 +21,8 @@ def event_loop(request):
 
 @pytest_asyncio.fixture(scope='session')
 async def initial_db() -> tuple[AsyncEngine, AsyncSession]:
-    test_engine = create_async_engine(settings.TEST_DATABASE_URL, future=True)
+    test_engine = create_async_engine(settings.DATABASE_URL, future=True)
     test_async_session = sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
-
-    async def get_session_func() -> AsyncSession:
-        async with test_async_session() as session:
-            yield session
 
     return test_engine, test_async_session
 
@@ -50,6 +37,24 @@ async def async_session(initial_db) -> AsyncGenerator:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await test_engine.dispose()
+
+
+@pytest_asyncio.fixture(scope='session')
+async def client(initial_db) -> AsyncGenerator:
+    test_engine, test_async_session = initial_db
+
+    async def get_session_func() -> AsyncSession:
+        async with test_async_session() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = get_session_func
+
+    async with AsyncClient(
+            app=app,
+            follow_redirects=False,
+            base_url='http://testserver',
+    ) as client:
+        yield client
 
 
 @pytest_asyncio.fixture()

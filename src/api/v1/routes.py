@@ -28,11 +28,11 @@ router = APIRouter()
 async def ping(db: AsyncSession = Depends(get_session)):
     logger.info('Test ping.')
     db_response_time = await ping_db(db)
-    return {
-        'api': 'v1',
-        'python': sys.version_info,
-        'db': db_response_time
-    }
+    return Ping(
+        api='v1',
+        python=sys.version_info,
+        db=db_response_time
+    )
 
 
 async def ping_db(db):
@@ -50,7 +50,10 @@ async def ping_db(db):
 @router.post('/files/', description='Files list', summary='Files list', response_model=Files)
 async def files_list_handler(user: User = Depends(current_active_user), db: AsyncSession = Depends(get_session)):
     query = await file_crud.get_multi(db=db, user_id=str(user.id))
-    return {"account_id": str(user.id), "files": query}
+    return Files(
+        files=query,
+        account_id=str(user.id)
+    )
 
 
 @router.post('/files/upload', description='Upload file', summary='Upload file')
@@ -115,7 +118,8 @@ async def usage_memory(
     logger.info('Get usage memory.')
     query = await file_crud.get_multi(db=db, user_id=str(user.id))
 
-    return {
-        "files": len(query),
-        "used": sum([file.size for file in query])
-    }
+    return MemoryUsage(  # если response_model в декораторе указан, то тут не обязательно оборачивать в модель
+        # pydantic, валидация работает и так
+        files=len(query),
+        used=sum([file.size for file in query])
+    )

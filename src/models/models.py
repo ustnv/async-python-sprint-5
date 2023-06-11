@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import Depends
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, func, sql, DateTime
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, func, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base, relationship  # type: ignore

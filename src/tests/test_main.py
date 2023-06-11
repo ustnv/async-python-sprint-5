@@ -1,9 +1,7 @@
-import pytest
+from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import status
 
-from api.v1.routes import router
 from main import app
 from models.models import File
 

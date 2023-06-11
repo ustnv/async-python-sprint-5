@@ -2,12 +2,14 @@ import logging
 import os
 import sys
 from logging import config as logging_config
+from typing import Any
 
-from pydantic import BaseSettings, PostgresDsn
+from pydantic import BaseSettings, PostgresDsn, validator
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.append('src')
+
 
 class AppSettings(BaseSettings):
     LOG_LEVEL = 'INFO'
@@ -16,14 +18,32 @@ class AppSettings(BaseSettings):
     PROJECT_HOST: str
     PROJECT_PORT: int
 
+    POSTGRES_DB: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int
+
     MAX_FILE_SIZE: int = 1024 * 1024 * 10
     SECRET: str
     TOKEN_EXPIRE: int = 60 * 60
 
-    DATABASE_URL: PostgresDsn
-    TEST_DATABASE_URL: PostgresDsn
+    DATABASE_URL: str = ''
 
     FILE_FOLDER: str = 'files/'
+
+    @validator('DATABASE_URL', pre=True, check_fields=False)
+    def assemble_db_connection(cls, value: str | None, values: dict[str, Any]) -> Any:
+        if isinstance(value, str) and value != '':
+            return value
+        return PostgresDsn.build(
+            scheme='postgresql+asyncpg',
+            user=values.get('POSTGRES_USER'),
+            password=values.get('POSTGRES_PASSWORD'),
+            host=values.get('POSTGRES_HOST'),
+            port=str(values.get('POSTGRES_PORT')),
+            path=f'/{values.get("POSTGRES_DB") or ""}',
+        )
 
     class Config:
         env_file = os.path.dirname(BASE_DIR) + '/.env'

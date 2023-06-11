@@ -1,5 +1,6 @@
 import logging
 import sys
+
 sys.path.append('src')
 
 import uvicorn
@@ -10,7 +11,6 @@ from api.v1.routes import router
 from core.config import settings
 
 logger = logging.getLogger(__name__)
-
 
 app = FastAPI(
     title=settings.APP_TITLE,
@@ -26,9 +26,8 @@ app = FastAPI(
     ],
 )
 
-app.include_router(router, prefix='/v1', tags=['v1'],)
-app.include_router(api_auth_router, prefix='/v1', tags=['auth'],)
-
+app.include_router(router, prefix='/v1', tags=['v1'], )
+app.include_router(api_auth_router, prefix='/v1', tags=['auth'], )
 
 if __name__ == '__main__':
     uvicorn.run('main:app', host=settings.PROJECT_HOST, port=settings.PROJECT_PORT, reload=True)

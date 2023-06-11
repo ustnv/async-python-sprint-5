@@ -7,12 +7,10 @@ from fastapi_users.authentication import AuthenticationBackend, BearerTransport,
 from core.config import logger, settings
 from models.models import User, get_user_db
 
-SECRET = settings.SECRET
-
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    reset_password_token_secret = SECRET
-    verification_token_secret = SECRET
+    reset_password_token_secret = settings.SECRET
+    verification_token_secret = settings.SECRET
 
     async def on_after_register(self, user: User, request: Request | None = None):
         logger.info(f"User {user.id} has registered.")
@@ -36,7 +34,7 @@ bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
 
 
 def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=settings.TOKEN_EXPIRE)
+    return JWTStrategy(secret=settings.SECRET, lifetime_seconds=settings.TOKEN_EXPIRE)
 
 
 auth_backend = AuthenticationBackend(

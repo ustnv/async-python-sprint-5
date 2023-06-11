@@ -1,49 +1,41 @@
 version: "3.8"
 services:
-  postgres-fastapi:
-    image: postgres:14.1-alpine
+  db:
+    build:
+        context: .
+        dockerfile: ./dockerization/Dockerfile-db
     restart: always
     expose:
-      - "${POSTGRES_EXPOSE}"
+      - ${POSTGRES_EXPOSE}
     ports:
-      - "${POSTGRES_EXPOSE}:${POSTGRES_EXPOSE}"
-    env_file:
-      - ./.env
+      - ${POSTGRES_EXPOSE}:${POSTGRES_PORT}
+    environment:
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        - POSTGRES_MULTIPLE_DATABASES=${POSTGRES_DB},${POSTGRES_DB_TEST}
     volumes:
-      - postgres-fastapi:/var/lib/postgresql/data/
-    networks:
-      - storage-service
-
-  postgres-fastapi-test:
-    image: postgres:14.1-alpine
-    restart: always
-    expose:
-      - "${POSTGRES_EXPOSE_TEST}"
-    ports:
-      - "${POSTGRES_EXPOSE_TEST}:${POSTGRES_EXPOSE}"
-    env_file:
-      - ./.env
+      - db:/var/lib/postgresql/data/
     networks:
       - storage-service
 
   backend:
     build: .
-    command: sh -c "export PYTHONPATH=$(pwd) && cd ./src && alembic upgrade head && cd .. && uvicorn src.main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "export PYTHONPATH=$(pwd) && sleep 5 && cd ./src && alembic upgrade head && cd .. && python -m gunicorn --name file_service -k uvicorn.workers.UvicornWorker -w 1 -b 0.0.0.0:8000 src.main:app"
     ports:
       - ${DOCKER_APP_PORT:-8000}:8000
     volumes:
       - ./src/files:/files
     env_file:
       - ./.env
-    restart: always
+    environment:
+      - POSTGRES_HOST=db
     depends_on:
-      - postgres-fastapi
-      - postgres-fastapi-test
+      - db
     networks:
         - storage-service
 
 volumes:
-  postgres-fastapi:
+  db:
 
 
 networks:
